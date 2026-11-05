@@ -14,6 +14,11 @@
             --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             --safe-bottom: env(safe-area-inset-bottom, 20px);
         }
+        
+        html {
+            font-size: clamp(14px, 1.5vw, 16px);
+        }
+        
         * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; font-family: var(--font); }
         body { background: var(--bg); color: var(--text); padding-bottom: calc(70px + var(--safe-bottom)); overflow-x: hidden; }
         
@@ -22,13 +27,27 @@
         h2 { font-size: 1.1rem; font-weight: 600; margin-bottom: 0.75rem; }
         h3 { font-size: 1rem; font-weight: 600; margin-bottom: 0.25rem; }
         p { font-size: 0.9rem; color: var(--text-dim); }
-        .container { padding: 1rem; max-width: 600px; margin: 0 auto; }
+        
+        .container { 
+            padding: 1rem; 
+            width: 100%; 
+            max-width: 600px; 
+            margin: 0 auto; 
+            transition: max-width 0.3s ease, padding 0.3s ease;
+        }
+        
         .card { background: var(--surface); border: 1px solid var(--surface-border); border-radius: 12px; padding: 1rem; margin-bottom: 1rem; }
         
-        /* Flex Utils */
+        /* Flex & Grid Utils */
         .flex { display: flex; } .flex-col { display: flex; flex-direction: column; } .flex-row { display: flex; flex-direction: row; }
         .items-center { align-items: center; } .justify-between { justify-content: space-between; } .gap-2 { gap: 0.5rem; } .gap-4 { gap: 1rem; }
-        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+        
+        .grid-auto { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); 
+            gap: 0.75rem; 
+        }
+        
         .mt-2 { margin-top: 0.5rem; } .mb-2 { margin-bottom: 0.5rem; } .mt-4 { margin-top: 1rem; } .text-center { text-align: center; }
         
         /* Forms & Buttons */
@@ -47,7 +66,7 @@
         .w-full { width: 100%; }
 
         /* Navigation */
-        .nav-bar { position: fixed; bottom: 0; left: 0; right: 0; background: var(--surface); border-top: 1px solid var(--surface-border); display: flex; justify-content: space-around; padding-bottom: var(--safe-bottom); z-index: 100; }
+        .nav-bar { position: fixed; bottom: 0; left: 0; right: 0; background: var(--surface); border-top: 1px solid var(--surface-border); display: flex; justify-content: space-around; padding-bottom: var(--safe-bottom); z-index: 100; transition: all 0.3s ease; }
         .nav-item { flex: 1; text-align: center; padding: 0.75rem 0; color: var(--text-dim); text-decoration: none; font-size: 0.7rem; display: flex; flex-direction: column; align-items: center; gap: 4px; }
         .nav-item.active { color: var(--text); }
         .nav-icon { font-size: 1.25rem; }
@@ -93,6 +112,34 @@
         /* Modals */
         .modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.9); z-index:200; padding:1rem; overflow-y:auto; }
         .modal-content { max-width:500px; margin: 2rem auto; }
+
+        /* Tablet / Small Laptop Responsive */
+        @media (min-width: 768px) {
+            .container { max-width: 800px; padding: 2rem; }
+            
+            .nav-bar {
+                max-width: 500px;
+                margin: 0 auto;
+                bottom: 20px;
+                border-radius: 24px;
+                border: 1px solid var(--surface-border);
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            }
+            body { padding-bottom: 100px; } 
+            
+            .cal-cell { 
+                aspect-ratio: auto; 
+                min-height: 80px; 
+                padding: 10px;
+            }
+            .cal-date { font-size: 1.1rem; }
+            .dot { width: 8px; height: 8px; }
+        }
+
+        /* Widescreen Laptop Responsive */
+        @media (min-width: 1024px) {
+            .container { max-width: 1000px; }
+        }
     </style>
 </head>
 <body>
@@ -113,7 +160,7 @@
             <h3>Workout in Progress</h3>
             <button class="success w-full mt-2" onclick="App.nav('active')">Resume Session</button>
         </div>
-        <div class="grid-2 mb-4">
+        <div class="grid-auto mb-4">
             <div class="card text-center mb-0">
                 <p>Today</p>
                 <h3 id="dash-date">...</h3>
@@ -124,7 +171,7 @@
             </div>
         </div>
         <h2>Quick Actions</h2>
-        <div class="grid-2 mb-4">
+        <div class="grid-auto mb-4">
             <button class="primary" onclick="App.nav('gym')">Gym Plans</button>
             <button class="run-btn" onclick="App.nav('run')">Running Plans</button>
         </div>
@@ -155,7 +202,7 @@
             <div class="card mt-4" id="cal-selected-details">
                 <h3 id="cal-selected-date-label">Selected Date</h3>
                 <div id="cal-selected-items" class="mt-2 flex-col gap-2"></div>
-                <div class="grid-2 mt-4">
+                <div class="grid-auto mt-4">
                     <button class="small primary" onclick="CalendarView.promptSchedule('gym')">+ Plan Gym</button>
                     <button class="small run-btn" onclick="CalendarView.promptSchedule('run')">+ Plan Run</button>
                 </div>
@@ -215,7 +262,7 @@
             </div>
             <label>Session Name</label>
             <input type="text" id="run-plan-name" placeholder="e.g. 6x800m Intervals">
-            <div class="grid-2">
+            <div class="grid-auto">
                 <div>
                     <label>Run Type</label>
                     <select id="run-plan-type">
@@ -271,7 +318,7 @@
                 <p id="run-seg-next" style="font-weight:600;">Fast: 800m at 4:00/km</p>
             </div>
 
-            <div class="grid-2 mt-4">
+            <div class="grid-auto mt-4">
                 <button class="success w-full" id="btn-run-toggle" onclick="ActiveController.toggleRunTimer()">Start</button>
                 <button class="w-full" onclick="ActiveController.nextRunSegment()">Skip / Next</button>
             </div>
@@ -281,12 +328,12 @@
         <!-- Post Run Form -->
         <div id="post-run-form" style="display:none;">
             <h3 class="mb-4">Log Actual Performance</h3>
-            <div class="grid-2">
+            <div class="grid-auto">
                 <div><label>Total Distance (km)</label><input type="number" step="0.01" id="post-run-dist"></div>
                 <div><label>Total Time (MM:SS)</label><input type="text" id="post-run-time" oninput="ActiveController.calcPostRunPace()"></div>
             </div>
             <label>Average Pace</label><input type="text" id="post-run-pace" readonly>
-            <div class="grid-2">
+            <div class="grid-auto">
                 <div><label>Avg HR</label><input type="number" id="post-run-avg-hr"></div>
                 <div><label>Max HR</label><input type="number" id="post-run-max-hr"></div>
             </div>
@@ -297,7 +344,7 @@
 
     <!-- HISTORY -->
     <main id="view-history" class="view container">
-        <div class="grid-2 mb-4">
+        <div class="grid-auto mb-4">
             <div class="card text-center mb-0">
                 <p>Gym Vol (30d)</p>
                 <h3 id="stat-gym-vol" style="color: var(--brand-gym)">0 kg</h3>
@@ -334,7 +381,7 @@
             <label>Select Gym Template</label>
             <select id="modal-routine-template"></select>
             <label class="mt-2">Active Days</label>
-            <div class="grid-2" id="modal-routine-days">
+            <div class="grid-auto" id="modal-routine-days">
                 <label><input type="checkbox" value="1"> Monday</label><label><input type="checkbox" value="2"> Tuesday</label>
                 <label><input type="checkbox" value="3"> Wednesday</label><label><input type="checkbox" value="4"> Thursday</label>
                 <label><input type="checkbox" value="5"> Friday</label><label><input type="checkbox" value="6"> Saturday</label>
@@ -355,14 +402,14 @@
             <input type="number" id="wiz-reps" value="6">
             
             <h3 class="mt-4 mb-2">Fast / Work Segment</h3>
-            <div class="grid-2">
+            <div class="grid-auto">
                 <div><label>Target</label><select id="wiz-fast-type"><option value="distance">Distance (km)</option><option value="time">Time (MM:SS)</option></select></div>
                 <div><label>Value</label><input type="text" id="wiz-fast-val" placeholder="e.g. 0.8 or 03:00"></div>
             </div>
             <label>Target Pace</label><input type="text" id="wiz-fast-pace" placeholder="e.g. 4:00">
             
             <h3 class="mt-4 mb-2">Recovery Segment</h3>
-            <div class="grid-2">
+            <div class="grid-auto">
                 <div><label>Target</label><select id="wiz-rec-type"><option value="distance">Distance (km)</option><option value="time">Time (MM:SS)</option></select></div>
                 <div><label>Value</label><input type="text" id="wiz-rec-val" placeholder="e.g. 0.4 or 02:00"></div>
             </div>
@@ -394,9 +441,9 @@ const STORE_NAME = 'state';
 
 const defaultState = {
     gymTemplates: [],
-    runPlans: [],      // Combines templates and specific scheduled runs
-    routines: [],      // Recurring gym days
-    scheduledSessions: [], // Single-day gym schedules
+    runPlans: [],      
+    routines: [],      
+    scheduledSessions: [], 
     history: [], 
     activeSession: null,
     timer: null
@@ -410,7 +457,6 @@ const DataLayer = {
         const lsData = localStorage.getItem(DB_NAME);
         if (lsData) { try { appState = { ...appState, ...JSON.parse(lsData) }; } catch(e){} }
         
-        // Ensure new arrays exist for legacy users
         if(!appState.runPlans) appState.runPlans = [];
         if(!appState.scheduledSessions) appState.scheduledSessions = [];
 
@@ -480,7 +526,6 @@ const Utils = {
     id: () => Date.now().toString(36) + Math.random().toString(36).substring(2),
     toLocalISO: (d) => { const off = d.getTimezoneOffset()*60000; return new Date(d - off).toISOString().slice(0,10); },
     
-    // Time format parsers (MM:SS)
     parseTimeStr(str) {
         if(!str) return 0;
         const p = str.split(':').map(Number);
@@ -499,7 +544,6 @@ const Utils = {
         const historyForDate = appState.history.filter(h => h.date === dateStr);
         let planned = [];
 
-        // 1. Gym Routines (Recurring)
         appState.routines.forEach(r => {
             if (r.days.includes(weekday) && !historyForDate.find(h => h.routineId === r.id)) {
                 const template = appState.gymTemplates.find(t => t.id === r.templateId);
@@ -507,7 +551,6 @@ const Utils = {
             }
         });
 
-        // 2. Scheduled Gym (Specific Date)
         appState.scheduledSessions.filter(s => s.date === dateStr).forEach(s => {
             if (!historyForDate.find(h => h.scheduledId === s.id)) {
                 const template = appState.gymTemplates.find(t => t.id === s.templateId);
@@ -515,7 +558,6 @@ const Utils = {
             }
         });
 
-        // 3. Planned Runs
         appState.runPlans.filter(r => r.date === dateStr).forEach(r => {
             if (!historyForDate.find(h => h.runPlanId === r.id)) {
                 planned.push({ type: 'run', runPlanId: r.id, name: r.name });
@@ -768,7 +810,7 @@ const CalendarView = {
 };
 
 /* ==========================================================================
-   GYM PLANNER CONTROLLER (Updated for Rep Ranges)
+   GYM PLANNER CONTROLLER
    ========================================================================== */
 let editingGymTemp = null;
 const GymController = {
@@ -888,7 +930,7 @@ const RunController = {
                         <button class="icon danger" onclick="RunController.delSeg(${i})">✕</button>
                     </div>
                 </div>
-                <div class="grid-2">
+                <div class="grid-auto">
                     <div>
                         <label style="font-size:0.7rem">Target (Dist / Time)</label>
                         <select onchange="RunController.updSeg(${i}, 'targetType', this.value)" style="padding:0.5rem; margin-bottom:0.2rem">
@@ -945,9 +987,8 @@ const ActiveController = {
         if(appState.activeSession) { alert("Finish current session first."); return; }
         const template = JSON.parse(JSON.stringify(appState.gymTemplates.find(t => t.id === tId)));
         
-        // Setup actual tracking for each set
         template.exercises.forEach(ex => {
-            ex.sets.forEach(s => { s.done = false; s.actW = s.weight; s.actR = ''; /* Empty to force user input */ });
+            ex.sets.forEach(s => { s.done = false; s.actW = s.weight; s.actR = ''; });
         });
         appState.activeSession = { id: Utils.id(), type: 'gym', templateId: tId, name: template.name, date: targetDate || Utils.toLocalISO(new Date()), routineId, scheduledId, exercises: template.exercises };
         DataLayer.save(); App.nav('active');
@@ -1004,7 +1045,6 @@ const ActiveController = {
             document.getElementById('run-timer-display').innerText = Utils.formatTimeStr(s.segElapsed / 1000);
         }
         
-        // Save periodically to avoid losing data, but update DOM fast
         if(Math.random() < 0.05) DataLayer.save(); 
         this.runIntervalRef = requestAnimationFrame(() => this.runTick());
     },
@@ -1026,7 +1066,7 @@ const ActiveController = {
             data: { 
                 runType: s.runType, distance: dist, time: timeStr, pace: document.getElementById('post-run-pace').value,
                 avgHr: document.getElementById('post-run-avg-hr').value, maxHr: document.getElementById('post-run-max-hr').value,
-                notes: document.getElementById('post-run-notes').value, segments: s.segments // preserving original plan targets
+                notes: document.getElementById('post-run-notes').value, segments: s.segments 
             }
         });
         appState.activeSession = null; DataLayer.save(); App.nav('history');
@@ -1066,7 +1106,7 @@ const ActiveController = {
     updSetGym(eIdx, sIdx, field, val) { appState.activeSession.exercises[eIdx].sets[sIdx][field] = field === 'actW' ? Number(val) : val; DataLayer.save(); },
     toggleSetGym(eIdx, sIdx) {
         const s = appState.activeSession.exercises[eIdx].sets[sIdx];
-        if(!s.done && !s.actR) { alert("Enter actual repetitions before completing the set."); return; } // Enforce actual reps
+        if(!s.done && !s.actR) { alert("Enter actual repetitions before completing the set."); return; }
         s.done = !s.done;
         if (s.done) {
             const isLast = sIdx === appState.activeSession.exercises[eIdx].sets.length - 1;
@@ -1087,7 +1127,6 @@ const ActiveController = {
         
         document.getElementById('btn-run-toggle').innerText = s.state === 'running' ? 'Pause' : 'Start';
         
-        // Initial display update
         if(seg.targetType === 'time') document.getElementById('run-timer-display').innerText = Utils.formatTimeStr(Math.max(0, Utils.parseTimeStr(seg.targetValue)*1000 - s.segElapsed)/1000);
         else document.getElementById('run-timer-display').innerText = Utils.formatTimeStr(s.segElapsed/1000);
         
@@ -1123,7 +1162,7 @@ const HistoryView = {
             } else {
                 return `<div class="card mb-0" style="border-left: 4px solid var(--brand-run)">
                     <div class="flex justify-between"><h3 style="margin:0">🏃 ${h.name}</h3><span style="font-size:0.8rem; color:var(--text-dim)">${h.date}</span></div>
-                    <div class="grid-2 mt-2">
+                    <div class="grid-auto mt-2">
                         <div><strong>${h.data.distance} km</strong></div><div>⏱ ${h.data.time}</div><div>⚡ ${h.data.pace}/km</div>
                         ${h.data.avgHr ? `<div>❤️ ${h.data.avgHr} bpm</div>` : ''}
                     </div>
