@@ -413,47 +413,109 @@
 /* ==========================================================================
    RPG DATA LAYER & STATE
    ========================================================================== */
-/* ==========================================================================
-   DASHBOARD
-   ========================================================================== */
-const DashboardView = {
-    render() {
-        if(!appState.player.initialized) return;
-        const p = appState.player;
-        const canTrain = Utils.canTrainToday();
-        
-        // FIXED: Removed the 'dash-date' line that was crashing the renderer.
-        document.getElementById('rpg-lvl').innerText = `LVL ${p.level} : ${RPGController.getTitle()}`;
-        document.getElementById('rpg-buff-badge').style.display = p.restBuff ? 'block' : 'none';
-        
-        document.getElementById('rpg-str').innerText = p.str; 
-        document.getElementById('rpg-end').innerText = p.end;
-        document.getElementById('rpg-xp-txt').innerText = `${p.xp} / ${p.level * 1000}`;
-        
-        document.getElementById('bar-str').style.width = `${Math.min(100, (p.str / 10000)*100)}%`;
-        document.getElementById('bar-end').style.width = `${Math.min(100, (p.end / 10000)*100)}%`;
-        document.getElementById('bar-xp').style.width = `${(p.xp / (p.level * 1000))*100}%`;
-        
-        // This will now successfully execute:
-        RPGController.renderAvatar('avatar-render-box');
-        
-        if (appState.activeSession) {
-            document.getElementById('dash-lockout-alert').style.display = 'none';
-            document.getElementById('action-buttons-container').style.display = 'none';
-        } else if (!canTrain) {
-            document.getElementById('dash-lockout-alert').style.display = 'block';
-            document.getElementById('action-buttons-container').style.display = 'none';
-        } else {
-            document.getElementById('dash-lockout-alert').style.display = 'none';
-            document.getElementById('action-buttons-container').style.display = 'block';
-        }
+const DB_NAME = 'ReadyPlayerFit_OS';
+const STORE_NAME = 'state';
 
-        const histContainer = document.getElementById('dash-history');
-        const recent = [...appState.history].sort((a,b) => b.timestamp - a.timestamp).slice(0, 3);
-        if (recent.length === 0) histContainer.innerHTML = '<p class="text-center" style="font-style:italic">ARCHIVE EMPTY.</p>';
-        else histContainer.innerHTML = recent.map(h => `<div class="card mb-0" style="border-left: 3px solid ${h.type==='gym'?'var(--brand-primary)':'var(--brand-secondary)'}; padding: 1rem"><div class="flex justify-between items-center"><strong style="font-family:var(--font-tech); font-size:1.1rem">${h.name}</strong><span style="font-size:0.75rem; color:var(--brand-primary)">+XP</span></div></div>`).join('');
+const defaultPlayer = {
+    initialized: false,
+    name: '', physical: { height: 0, weight: 0, exp: 0, days: 3 },
+    colors: { skin: '#FAD6B1', hair: '#111111', tee: '#08C0AB', shorts: '#171d28', shoes: '#ffffff' },
+    level: 1, xp: 0, str: 0, end: 0, 
+    lastWorkoutDate: null, restBuff: false,
+    inventory: ['basic_tee', 'basic_shorts', 'basic_shoes'],
+    equipped: { base: 'wireframe', top: 'basic_tee', bottom: 'basic_shorts', shoes: 'basic_shoes', acc: 'none' }
+};
+
+const defaultState = {
+    gymTemplates: [], runPlans: [], scheduledSessions: [], history: [], 
+    activeSession: null, player: defaultPlayer
+};
+
+let appState = JSON.parse(JSON.stringify(defaultState));
+
+const DataLayer = {
+    db: null,
+    async init() {
+        const lsData = localStorage.getItem(DB_NAME);
+        if (lsData) { try { appState = { ...appState, ...JSON.parse(lsData) }; } catch(e){} }
+        if(!appState.player) appState.player = defaultPlayer;
+        if(appState.player.initialized === undefined) appState.player.initialized = false;
+        if(!appState.player.colors) appState.player.colors = defaultPlayer.colors;
+        if(!appState.runPlans) appState.runPlans = [];
+
+        return new Promise((resolve) => {
+            const req = indexedDB.open(DB_NAME, 1);
+            req.onupgradeneeded = (e) => {
+                const db = e.target.result;
+                if (!db.objectStoreNames.contains(STORE_NAME)) db.createObjectStore(STORE_NAME);
+            };
+            req.onsuccess = (e) => {
+                this.db = e.target.result;
+                const tx = this.db.transaction(STORE_NAME, 'readonly');
+                const getReq = tx.objectStore(STORE_NAME).get('appState');
+                getReq.onsuccess = () => { if (getReq.result) appState = { ...appState, ...getReq.result }; resolve(); };
+                getReq.onerror = () => resolve();
+            };
+            req.onerror = () => resolve();
+        });
+    },
+    save() {
+        localStorage.setItem(DB_NAME, JSON.stringify(appState));
+        if (this.db) { try { const tx = this.db.transaction(STORE_NAME, 'readwrite'); tx.objectStore(STORE_NAME).put(appState, 'appState'); } catch (e) {} }
+    },
+    export() {
+        const blob = new Blob([JSON.stringify(appState, null, 2)], { type: "application/json" });
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `RPF_SaveData_${new Date().toISOString().slice(0,10)}.json`; a.click();
+    },
+    import(e) {
+        const file = e.target.files[0]; if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            try { appState = { ...defaultState, ...JSON.parse(ev.target.result) }; this.save(); alert("DB Overwritten."); location.reload(); } 
+            catch (err) { alert("Corrupt payload."); }
+        };
+        reader.readAsText(file);
+    },
+    wipe() {
+        if(confirm("FORMAT ALL MEMORY?")) {
+            localStorage.removeItem(DB_NAME);
+            if(this.db) { const tx = this.db.transaction(STORE_NAME, 'readwrite'); tx.objectStore(STORE_NAME).clear(); }
+            location.reload();
+        }
     }
 };
+
+const Utils = {
+    id: () => Date.now().toString(36) + Math.random().toString(36).substring(2),
+    toLocalISO: (d) => { const off = d.getTimezoneOffset()*60000; return new Date(d - off).toISOString().slice(0,10); },
+    parseTimeStr(str) {
+        if(!str) return 0; const p = str.split(':').map(Number);
+        if(p.length === 2) return p[0]*60 + p[1]; if(p.length === 3) return p[0]*3600 + p[1]*60 + p[2]; return Number(str) || 0;
+    },
+    formatTimeStr(sec) {
+        if(isNaN(sec) || sec < 0) return "00:00";
+        const m = Math.floor(sec / 60); const s = Math.floor(sec % 60);
+        return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    },
+    getSessionsForDate(dateStr) {
+        const historyForDate = appState.history.filter(h => h.date === dateStr);
+        let planned = [];
+        appState.scheduledSessions.filter(s => s.date === dateStr).forEach(s => {
+            if (!historyForDate.find(h => h.scheduledId === s.id)) {
+                const template = appState.gymTemplates.find(t => t.id === s.templateId);
+                if (template) planned.push({ type: 'gym', scheduledId: s.id, templateId: s.templateId, name: template.name });
+            }
+        });
+        appState.runPlans.filter(r => r.date === dateStr).forEach(r => {
+            if (!historyForDate.find(h => h.runPlanId === r.id)) planned.push({ type: 'run', runPlanId: r.id, name: r.name });
+        });
+        return { planned, history: historyForDate };
+    },
+    canTrainToday() {
+        return appState.player.lastWorkoutDate !== this.toLocalISO(new Date());
+    }
+};
+
 /* ==========================================================================
    ONBOARDING CONTROLLER
    ========================================================================== */
